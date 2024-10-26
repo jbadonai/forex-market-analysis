@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            display: none; /* Hidden by default */
+        }
+        #loading {
+            display: none; /* Hidden by default */
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Market Analysis Tool</h1>
+<form id="marketForm">
+    <label for="symbol">Enter Market Symbol (e.g., XRP-USD, GC=F):</label><br>
+    <input type="text" id="symbol" name="symbol" required>
+    <button type="submit">Analyze Market</button>
+</form>
+
+<div id="loading">
+    <div class="spinner"></div>
+    Analyzing...
+</div>
+
+<div id="result"></div>
+
+<script>
+    document.getElementById('marketForm').addEventListener('submit', async function(event) {
+        event.preventDefault(); // Prevent form submission
+
+        const symbol = document.getElementById('symbol').value;
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+
+        // Show loading spinner
+        loadingDiv.style.display = 'block';
+        resultDiv.style.display = 'none';
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/analyze_market', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ symbol: symbol }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            let output = '<h2>Market Analysis Results</h2>';
+            for (const [interval, direction] of Object.entries(data)) {
+                output += `<p>Market Direction for ${interval}: <strong>${direction}</strong></p>`;
+            }
+            resultDiv.innerHTML = output;
+            resultDiv.style.display = 'block';
+
+        } catch (error) {
+            resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            resultDiv.style.display = 'block';
+        } finally {
+            // Hide loading spinner
+            loadingDiv.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>
