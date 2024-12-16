@@ -1,104 +1,547 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Analysis</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #333;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            display: none; /* Hidden by default */
-        }
-        #loading {
-            display: none; /* Hidden by default */
-            margin-top: 20px;
-        }
-        .spinner {
-            border: 5px solid #f3f3f3; /* Light grey */
-            border-top: 5px solid #3498db; /* Blue */
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBT Quiz</title>
+
+<style>
+  /* General styling */
+  html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #f9f9f9;
+  }
+
+  .button-container, .quiz-container {
+    width: 80vw;
+    max-width: 800px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: white;
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  /* Highlighted score and question tracker */
+  .score, .question-count {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #07120d;
+    background-color: #adef89; /* Blue for contrast */
+    padding: 10px;
+    margin-top: 1px;
+    <!--border-radius: 8px;-->
+    <!--margin-bottom: 15px;-->
+  }
+
+  /* Question styling */
+  .question {
+    font-size: 1.3em;
+    padding-bottom: 20px;
+    padding-top: 20px;
+    <!--background-color: #fdf4f9; /* Blue for contrast */-->
+
+  }
+
+  /* Button styling */
+  .options button {
+    display: block;
+    width: 80%;
+    margin: 5px 10%;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 16px;
+  }
+  .options button:hover {
+    background-color: #e0e0e0;
+  }
+
+  /* Feedback styling */
+  .feedback {
+    font-weight: bold;
+    color: #007700;
+    padding-top: 10px;
+    padding-top: 10px;
+    <!--background-color: #f7fcfa;-->
+  }
+  .feedback.incorrect {
+    color: #cc0000;
+  }
+
+  /* Navigation buttons */
+  .navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  .navigation button {
+    padding: 10px 20px;
+    cursor: pointer;
+  }
+
+  /* Restart button */
+  #restart-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+    display: none;
+  }
+</style>
+
 </head>
 <body>
 
-<h1>Market Analysis Tool</h1>
-<form id="marketForm">
-    <label for="symbol">Enter Market Symbol (e.g., XRP-USD, GC=F):</label><br>
-    <input type="text" id="symbol" name="symbol" required>
-    <button type="submit">Analyze Market</button>
-</form>
-
-<div id="loading">
-    <div class="spinner"></div>
-    Analyzing...
+<div class="button-container">
+  <button onclick="selectObjective()">Objective Questions</button>
+  <button onclick="selectTheory()">Theory Questions</button>
 </div>
 
-<div id="result"></div>
+<div class="quiz-container">
+  <div id="score" class="score">Score: 0</div>
+  <div id="question-count" class="question-count">Question 1 of 15</div>
+  <div id="question" class="question"></div>
+  <div id="options" class="options"></div>
+  <div id="feedback" class="feedback"></div>
+  <div id="theory-answer" class="theory-answer"></div>
+  <div class="navigation">
+    <button onclick="previousQuestion()">Back</button>
+    <button onclick="nextQuestion()">Next</button>
+  </div>
+  <button id="restart-button" onclick="restartQuiz()">Restart Quiz</button>
+</div>
 
 <script>
-    document.getElementById('marketForm').addEventListener('submit', async function(event) {
-        event.preventDefault(); // Prevent form submission
+ // Quiz data
+  const objective_questions = [
+    { question: "What is the origin of the word 'science'?", options: ["Greek", "Latin", "Arabic", "Sanskrit"], answer: 1, explanation: "The word 'science' originates from the Latin word 'scientia,' which means 'knowledge'." },
+    { question: "How is science defined in the document?", options: ["Knowledge through reading", "Observation and testing of facts", "Predicting the future", "Theory formulation"], answer: 1, explanation: "Science is defined as the knowledge obtained through observing and testing facts." },
+    { question: "Who is considered a scientist?", options: ["A person who observes stars", "A person who tests metals", "A person who studies national sciences", "A person who writes books"], answer: 2, explanation: "A scientist studies one or more natural sciences like physics, chemistry, or biology." },
+     { question: "How can insect and rodent control benefit sanitation?", options: ["By increasing pests", "By spreading diseases", "By controlling disease vectors", "By complicating living conditions"], answer: 2, explanation: "Controlling insects and rodents helps prevent diseases caused by these vectors." },
+    { question: "What are carbohydrates primarily composed of?", options: ["Carbon, hydrogen, and oxygen", "Nitrogen and oxygen", "Only carbon", "Proteins and fats"], answer: 0, explanation: "Carbohydrates are made of carbon, hydrogen, and oxygen atoms." },
+    { question: "What percentage of blood is made up of water?", options: ["50%", "70%", "90%", "100%"], answer: 2, explanation: "Water makes up about 90% of the blood." },
+    { question: "What does basic science encompass?", options: ["Advanced research", "Primary and junior secondary science education", "Graduate studies", "All scientific fields"], answer: 1, explanation: "Basic science refers to the learning of science at the primary and junior secondary levels." },
+    { question: "What defines biodegradable materials?", options: ["Materials that can be recycled", "Materials that can decompose", "Materials that last forever", "Materials made of plastic"], answer: 1, explanation: "Biodegradable materials can decompose and be broken down by microorganisms." },
+    { question: "What type of science deals with living organisms?", options: ["Physical science", "Biological science", "Social science", "Earth science"], answer: 1, explanation: "Biological science is the study of living organisms." },
+    { question: "What type of food is typically eaten with meals?", options: ["Snacks", "Fruits", "Cereals", "Desserts"], answer: 2, explanation: "Cereals are commonly included in meals for energy." },
+    { question: "How has science impacted agriculture?", options: ["Reduced farming", "Facilitated production of high-yielding seeds", "Increased soil erosion", "Made farming obsolete"], answer: 1, explanation: "Science has helped in the agricultural sector by facilitating the production of high-yielding and disease-resistant crops." },
+    { question: "What should be done about insect infestations?", options: ["Ignore them", "Control them to prevent disease", "Encourage their presence", "Leave them unchecked"], answer: 1, explanation: "Controlling insect infestations helps prevent diseases associated with these pests." },
+    { question: "What is one benefit of environmental sanitation?", options: ["It makes the environment messy", "It prevents the spread of diseases", "It reduces clean water availability", "It encourages pollution"], answer: 1, explanation: "Environmental sanitation helps prevent the spread of diseases by maintaining cleanliness." },
+    { question: "What is a method of sanitation?", options: ["Ignoring refuse", "Keeping the environment clean", "Disposing waste improperly", "Encouraging littering"], answer: 1, explanation: "One method of sanitation is to keep the environment clean." },
+    { question: "What type of food does the term 'local food' refer to?", options: ["Imported food", "Food produced locally", "Fast food", "Frozen food"], answer: 1, explanation: "Local food refers to food that is produced in the local area, such as yam and rice." },
+    { question: "Which of the following is a key characteristic of scientific inquiry?", options: ["It is subjective", "It relies on emotional responses", "It is based on empirical evidence", "It avoids questioning"], answer: 2, explanation: "Scientific inquiry is grounded in empirical evidence and observation." },
+    { question: "What is a key characteristic of fat-soluble vitamins?", options: ["They dissolve in water", "They dissolve in fats", "They are found only in vegetables", "They are not absorbed"], answer: 1, explanation: "Fat-soluble vitamins dissolve in fats and are absorbed along with them in the body." },
+    { question: "What role does sanitation play in public health?", options: ["It decreases hygiene", "It contributes to disease spread", "It is irrelevant", "It improves hygiene and health standards"], answer: 3, explanation: "Sanitation plays a crucial role in improving hygiene and public health standards." },
+    { question: "Which scientific discipline would involve studying human health?", options: ["Biology", "Physics", "Chemistry", "Sociology"], answer: 0, explanation: "Biology, particularly its subfields like microbiology and physiology, involves studying living organisms and human health." },
+    { question: "What should be done with refuse after collection?", options: ["Burn it anywhere", "Transport it to processing sites", "Leave it on the streets", "Ignore it"], answer: 1, explanation: "Collected refuse must be transported to processing or disposal sites properly." },
+    { question: "What does the study of physics encompass?", options: ["Human behavior", "Matter and energy", "Historical events", "Art and culture"], answer: 1, explanation: "Physics is the study of matter, energy, and the fundamental forces of nature." },
+    { question: "How should refuse be disposed of?", options: ["Burn it anywhere", "Dump it illegally", "In designated waste management sites", "Ignore it"], answer: 2, explanation: "Refuse should be disposed of at designated waste management sites to prevent environmental pollution." },
+    { question: "What should be done about stagnant water around the home?", options: ["Leave it as is", "Encourage it for gardening", "Eliminate it to prevent disease", "Ignore it"], answer: 2, explanation: "Stagnant water should be eliminated to prevent the breeding of mosquitoes and other diseases." },
+    { question: "Which of the following best defines environmental sanitation?", options: ["Cleaning clothes", "Maintaining a clean and healthy environment", "Washing dishes", "Taking out the trash"], answer: 1, explanation: "Environmental sanitation refers to practices that maintain a clean and healthy environment." },
+    { question: "Which of the following is a characteristic of a balanced diet?", options: ["Only consuming meat", "Including all classes of food", "High in sugars", "Ignoring nutrition"], answer: 1, explanation: "A balanced diet includes all classes of food in appropriate proportions for good health." },
+    { question: "What role does observation play in scientific research?", options: ["It is optional", "It is the main way to collect data", "It hinders progress", "It complicates experiments"], answer: 1, explanation: "Observation is crucial in scientific research as it is the primary method for collecting data." },
+    { question: "What is recommended for male hair maintenance?", options: ["Letting it grow long", "Cutting it short and washing daily", "Coloring it frequently", "Shaving it completely"], answer: 1, explanation: "Males should cut their hair short and wash it daily to maintain personal hygiene." },
+    { question: "What does a scientist do after conducting an experiment?", options: ["Gives up", "Draws conclusions", "Changes the hypothesis", "Records nothing"], answer: 1, explanation: "After conducting an experiment, scientists draw conclusions to confirm or refute their hypotheses." },
+    { question: "In the scientific method, what follows the observation phase?", options: ["Conclusion", "Hypothesis", "Experimentation", "Recording"], answer: 3, explanation: "Recording follows observation, where scientists document their findings." },
+    { question: "What is personal cleanliness?", options: ["Practicing hygiene", "Ignoring cleanliness", "Cleaning public spaces", "Maintaining a garden"], answer: 0, explanation: "Personal cleanliness, or personal hygiene, is the practice aimed at improving an individual's hygiene." },
+    { question: "Which of the following is a type of food classification?", options: ["Luxury and essential", "Liquid and solid", "Healthy and unhealthy", "Processed and unprocessed"], answer: 1, explanation: "Food can be classified into liquid and solid types." },
+    { question: "In the context of the scientific method, what is meant by 'drawing conclusions'?", options: ["Making untested assumptions", "Finalizing results based on experimental data", "Ignoring findings", "Rejecting data"], answer: 1, explanation: "Drawing conclusions involves analyzing experimental data to confirm or refute the hypothesis." },
+    { question: "How do scientists gather information about phenomena?", options: ["By guessing", "By observing closely", "By assuming", "By reading only"], answer: 1, explanation: "Scientists gather information by closely observing phenomena." },
+    { question: "What type of food is typically cooked?", options: ["Salads", "Yam", "Carrot", "Fruits"], answer: 1, explanation: "Yam is typically cooked before consumption." },
+    { question: "Which of the following best describes a scientist?", options: ["A person who studies literature", "A person conducting research in natural sciences", "An engineer", "A historian"], answer: 1, explanation: "A scientist is someone who studies one or more of the natural sciences such as physics, chemistry, or biology." },
+    { question: "What is the role of dietary fiber?", options: ["Provide energy", "Help in digestion", "Only for taste", "Build tissues"], answer: 1, explanation: "Dietary fiber helps in digestion and promotes gut health." },
+    { question: "What do scientists aim to achieve through research?", options: ["To prove themselves right", "To advance knowledge", "To win awards", "To become famous"], answer: 1, explanation: "Scientists conduct research to advance knowledge in their areas of interest." },
+    { question: "What is the role of fats in the diet?", options: ["Providing energy", "Only for taste", "Storing vitamins", "Only for cooking"], answer: 0, explanation: "Fats are a great source of energy for the body." },
+    { question: "Which profession is directly related to the application of chemistry?", options: ["Pharmacy", "Construction", "Graphic design", "Teaching"], answer: 0, explanation: "Pharmacy involves applying chemical knowledge to develop and dispense medications." },
+    { question: "Which is a solid food?", options: ["Milk", "Tea", "Beans", "Juice"], answer: 2, explanation: "Beans are classified as solid food, while milk and juice are liquid." },
+    { question: "What type of science focuses on the laws governing the universe?", options: ["Biology", "Physics", "Chemistry", "Sociology"], answer: 1, explanation: "Physics is the branch of science that studies the laws governing the universe, including matter and energy." },
+    { question: "Which of the following is an example of food?", options: ["Air", "Garri", "Plastic", "Sand"], answer: 1, explanation: "Garri is an example of food as it provides nutrients necessary for bodily functions." },
+    { question: "What is a hypothesis?", options: ["A proven theory", "A detailed observation", "A guess made without complete evidence", "A conclusive result"], answer: 2, explanation: "A hypothesis is a guess or educated statement made by scientists that requires testing." },
+    { question: "Which class of food provides energy and promotes growth?", options: ["Vitamins", "Minerals", "Proteins", "Fats"], answer: 3, explanation: "Fats are a significant source of energy and support growth." },
+    { question: "What food item is a good source of vitamins?", options: ["Meat", "Fruits", "Garri", "Rice"], answer: 1, explanation: "Fruits are a good source of vitamins essential for good health." },
+    { question: "Which nutrient is critical for repair and growth of body tissues?", options: ["Vitamins", "Fats", "Proteins", "Carbohydrates"], answer: 2, explanation: "Proteins are critical for the repair and growth of body tissues." },
+    { question: "Why is water considered essential?", options: ["It is a luxury", "It helps in digestion and absorption", "It can be replaced with other drinks", "It is only for taste"], answer: 1, explanation: "Water is essential as it aids in digestion, absorption, and various biochemical processes." },
+    { question: "What is the outcome of a successful hypothesis?", options: ["It is always true", "It leads to further research", "It is irrelevant", "It is considered a theory immediately"], answer: 1, explanation: "A successful hypothesis leads to further research and experimentation to validate it." },
+    { question: "How does sanitation affect habitability?", options: ["Makes areas uninhabitable", "Reduces living standards", "Makes the environment habitable", "Encourages disease"], answer: 2, explanation: "Sanitation practices contribute to making environments habitable for living." },
+    { question: "What does classification in science refer to?", options: ["Sorting things by color, size, or other properties", "Random grouping of items", "Making educated guesses", "Creating theories"], answer: 0, explanation: "Classification refers to sorting items based on characteristics like color, size, weight, etc." },
+    { question: "What is the impact of improper sewage disposal?", options: ["Improved health", "Environmental pollution", "Clean surroundings", "Public health benefits"], answer: 1, explanation: "Improper sewage disposal can lead to significant environmental pollution." },
+    { question: "What does the word 'science' derive from?", options: ["French", "Latin", "Greek", "English"], answer: 1, explanation: "The word 'science' comes from the Latin word 'scientia,' which means 'knowledge.'" },
+    { question: "What is the best way to ensure environmental sanitation?", options: ["Ignoring waste", "Regular cleaning and proper disposal", "Encouraging littering", "Only cleaning during spring"], answer: 1, explanation: "Regular cleaning and proper waste disposal are essential for ensuring environmental sanitation." },
+    { question: "Which vitamins are fat-soluble?", options: ["A, B, C", "D, E, K", "B, C, D", "A, C, K"], answer: 1, explanation: "Vitamins D, E, and K are examples of fat-soluble vitamins." },
+    { question: "What constitutes a balanced diet?", options: ["Only fruits and vegetables", "A diet with all six classes of food in appropriate proportions", "Fast food only", "High sugar content"], answer: 1, explanation: "A balanced diet includes all six classes of food in their appropriate proportions." },
+    { question: "What should be done to maintain the living room and bedroom floors?", options: ["Only vacuuming", "Mopping with detergent and water", "Ignoring them", "Using a carpet only"], answer: 1, explanation: "The floors of living areas should be mopped with detergent and water to keep them clean." },
+    { question: "What are water-soluble vitamins?", options: ["Vitamins that dissolve in fats", "Vitamins that dissolve in water", "Vitamins that are only found in fruits", "Vitamins that cannot be absorbed"], answer: 1, explanation: "Water-soluble vitamins dissolve in water and are readily absorbed into the body." },
+    { question: "What has scientific knowledge contributed to the field of astronomy?", options: ["Understanding of the earth's core", "Discovery of new galaxies", "Improved weather prediction", "Enhanced farming techniques"], answer: 1, explanation: "Scientific knowledge has allowed for the discovery of new galaxies and possibly the existence of life beyond Earth." },
+    { question: "What is the first step in the scientific method?", options: ["Observing", "Recording", "Asking questions", "Drawing conclusions"], answer: 2, explanation: "Asking questions is the initial step in the scientific method to gather accurate information." },
+    { question: "What is the primary purpose of carbohydrates in our diet?", options: ["To provide fiber", "To build muscles", "To provide energy", "To supply vitamins"], answer: 2, explanation: "Carbohydrates primarily provide energy needed for daily activities." },
+    { question: "How can food be defined?", options: ["Anything that tastes good", "Any substance that provides nutrients when eaten", "Only fruits and vegetables", "Only cooked items"], answer: 1, explanation: "Food is defined as any substance that provides nutrients to make the body function when eaten and digested." },
+    { question: "What role has science played in communication?", options: ["Developing new languages", "Manufacturing telephones and ICT devices", "Limiting communication", "Encouraging isolation"], answer: 1, explanation: "Science has advanced communication by producing telephones and various internet devices." },
+    { question: "What is sewage?", options: ["Solid waste", "Liquid waste from homes and factories", "Garden waste", "Industrial waste only"], answer: 1, explanation: "Sewage consists of liquid waste matter, such as feces and dirty water from homes and factories." },
+    { question: "What kind of knowledge does a scientist aim to advance?", options: ["Personal opinions", "General knowledge", "Specialized scientific knowledge", "Cultural knowledge"], answer: 2, explanation: "Scientists conduct research to advance specialized knowledge within their field of study." },
+    { question: "Which of the following is a function of water in the body?", options: ["Ignoring digestion", "Transporting digested food", "Creating energy", "Building fat"], answer: 1, explanation: "Water is necessary for the transportation of digested food throughout the body." },
+    { question: "What is the purpose of an experiment in the scientific method?", options: ["To ignore data", "To test the validity of the hypothesis", "To randomly guess outcomes", "To summarize findings"], answer: 1, explanation: "Experiments are conducted to test whether the hypotheses are true or false." },
+    { question: "What is the main purpose of consuming food?", options: ["To enjoy flavors", "To stay alive and function", "For social gatherings", "Only to taste"], answer: 1, explanation: "The main purpose of consuming food is to provide nutrients necessary for survival and bodily functions." },
+    { question: "What do fats and oils primarily provide?", options: ["Vitamins", "Energy", "Protein", "Minerals"], answer: 1, explanation: "Fats and oils primarily provide energy to the body." },
+    { question: "Why is classification important in science?", options: ["To create confusion", "To organize and simplify data", "To ignore details", "To expand complexity"], answer: 1, explanation: "Classification helps scientists organize and simplify data for better understanding and analysis." },
+    { question: "What should be avoided to maintain sanitation?", options: ["Regular cleaning", "Refuse accumulation", "Waste disposal", "Hygiene practices"], answer: 1, explanation: "Avoiding refuse accumulation is crucial for maintaining sanitation." },
+    { question: "Which of the following is an example of a cereal?", options: ["Orange", "Wheat", "Carrot", "Lettuce"], answer: 1, explanation: "Wheat is an example of a cereal, while orange and carrot are fruits and vegetables, respectively." },
+    { question: "What is the purpose of asking questions in the scientific method?", options: ["To complicate research", "To gather information for investigation", "To avoid experiments", "To create hypotheses without data"], answer: 1, explanation: "Asking questions is essential for gathering information that guides scientific investigation." },
+    { question: "How is science primarily defined?", options: ["Knowledge through reading", "Observation and testing of facts", "Theoretical analysis", "Purely experimental"], answer: 1, explanation: "Science is defined as the knowledge obtained through observing and testing facts." },
+    { question: "Which branch of science would involve studying the chemical composition of substances?", options: ["Biology", "Chemistry", "Physics", "Astronomy"], answer: 1, explanation: "Chemistry focuses on the study of matter and the changes it undergoes." },
+    { question: "Which food is high in carbohydrates?", options: ["Fish", "Milk", "Garri", "Chicken"], answer: 2, explanation: "Garri is high in carbohydrates, providing essential energy." },
+    { question: "What is one benefit of scientific knowledge related to health?", options: ["Increased population", "Production of drugs for diseases", "Decreased life expectancy", "More recreational activities"], answer: 1, explanation: "Scientific knowledge has enabled the production of drugs to treat diseases like malaria." },
+    { question: "What is a characteristic of food eaten raw?", options: ["It is always unhealthy", "It can be eaten without cooking", "It is always cooked", "It is only fruits"], answer: 1, explanation: "Food eaten raw can be consumed without cooking, such as pawpaw and carrot." },
+    { question: "Which invention is a result of scientific progress?", options: ["Cellphones", "Books", "Traditional farming", "Hand tools"], answer: 0, explanation: "New inventions like cellphones, cars, and airplanes are direct results of advancements in science." },
+    { question: "How has science affected the production of crops?", options: ["Decreased food supply", "Increased crop diseases", "Introduced high-yielding and disease-resistant varieties", "Limited agricultural practices"], answer: 2, explanation: "Science has led to the introduction of high-yielding and disease-resistant crop varieties." },
+    { question: "How should clothes be maintained?", options: ["Washing them only when needed", "Keeping them dirty", "Washing them after wearing", "Dry cleaning only"], answer: 2, explanation: "Clothes should be washed after wearing them to keep them clean." },
+    { question: "What is an essential part of maintaining a clean home?", options: ["Ignoring the kitchen", "Cleaning the kitchen sink regularly", "Letting dishes pile up", "Cleaning only once a month"], answer: 1, explanation: "Regular cleaning of the kitchen sink is essential for maintaining a clean home." },
+    { question: "What is the proper way to clean teeth?", options: ["Rubbing them with a cloth", "Using a toothbrush and toothpaste twice daily", "Only rinsing with water", "Brushing once a week"], answer: 1, explanation: "Teeth should be cleaned with a toothbrush and toothpaste at least twice daily for good dental hygiene." },
+    { question: "How does the systematic study of science benefit society?", options: ["By increasing unemployment", "By creating chaos", "By facilitating advancements and solutions to problems", "By limiting knowledge"], answer: 2, explanation: "The systematic study of science leads to advancements that solve various societal problems." },
+    { question: "Which career is associated with studying the Earth's physical structure?", options: ["Astronomy", "Geology", "Meteorology", "Zoology"], answer: 1, explanation: "Geology is the career focused on studying the Earth's physical structure and processes." },
+    { question: "Which food is a rich source of Vitamin C?", options: ["Milk", "Orange", "Meat", "Rice"], answer: 1, explanation: "Oranges are a rich source of Vitamin C, essential for immune function." },
+    { question: "Why is personal hygiene important?", options: ["To avoid social norms", "To prevent diseases", "To ignore cleanliness", "To gain popularity"], answer: 1, explanation: "Personal hygiene is important for preventing diseases and maintaining good health." },
+    { question: "How does scientific knowledge contribute to everyday life?", options: ["It complicates tasks", "It leads to innovation and technology", "It has no practical application", "It limits choices"], answer: 1, explanation: "Scientific knowledge contributes to innovation and technology, enhancing everyday life." },
+    { question: "What type of food is typically consumed raw?", options: ["Pasta", "Rice", "Pawpaw", "Yam"], answer: 2, explanation: "Pawpaw is an example of food that is commonly eaten raw." },
+    { question: "Which type of material can easily decompose?", options: ["Plastic", "Glass", "Food scraps", "Metal"], answer: 2, explanation: "Food scraps are biodegradable materials that can easily decompose." },
+    { question: "What is the primary goal of personal cleanliness?", options: ["To look good", "To avoid public scrutiny", "To improve hygiene", "To impress others"], answer: 2, explanation: "The primary goal of personal cleanliness is to improve hygiene." },
+    { question: "What is the function of minerals in the body?", options: ["Only for energy", "Performing metabolic functions", "Only for growth", "Ignoring bodily functions"], answer: 1, explanation: "Minerals are essential nutrients that help the body perform metabolic and other functions." },
+    { question: "What nutrient is vital for maintaining healthy blood?", options: ["Carbohydrates", "Water", "Fats", "Proteins"], answer: 1, explanation: "Water is vital for maintaining healthy blood, making up about 90% of it." },
+    { question: "What is involved in the recording step of the scientific method?", options: ["Taking notes of observations", "Publishing findings", "Presenting data", "Ignoring findings"], answer: 0, explanation: "Recording involves taking detailed notes of the observations made during experiments." },
+    { question: "What is an example of imported food?", options: ["Yam", "Rice", "Pasta", "Beans"], answer: 2, explanation: "Pasta is an example of imported food, unlike yam and rice, which are local." },
+    { question: "What is nutrition?", options: ["Eating anything", "Taking in the right kind of food for growth and health", "Consuming fast food", "Ignoring food"], answer: 1, explanation: "Nutrition is the process of taking in the right kind of food and using it for growth and good health." },
+    { question: "What is the main function of carbohydrates in the body?", options: ["Building cells", "Providing energy", "Regulating temperature", "Producing hormones"], answer: 1, explanation: "Carbohydrates provide energy necessary for carrying out daily activities." },
+    { question: "Which aspect of sanitation helps the populace live healthily?", options: ["Ignoring waste", "Proper refuse disposal", "Increasing waste production", "Encouraging dirt"], answer: 1, explanation: "Proper sanitation, including refuse disposal, promotes a healthy lifestyle for the populace." },
+    { question: "Which of the following is a branch of natural science?", options: ["Physics", "Art", "History", "Philosophy"], answer: 0, explanation: "Physics is a branch of natural science focused on the study of matter and energy." },
+    { question: "What is a crucial step in the scientific method that involves making an initial guess?", options: ["Recording observations", "Asking questions", "Hypothesis formation", "Classification"], answer: 2, explanation: "Hypothesis formation involves making educated guesses about scientific phenomena." },
+    { question: "What kind of science is concerned with the physical world and its laws?", options: ["Natural science", "Social science", "Formal science", "Applied science"], answer: 0, explanation: "Natural science is focused on studying the physical world and the laws that govern it." },
+    { question: "Why is the disposal of refuse and sewage important?", options: ["To create pollution", "To manage government waste effectively", "To increase waste", "To ignore hygiene"], answer: 1, explanation: "Proper disposal of refuse and sewage is crucial to avoid environmental pollution." },
+    { question: "Which of the following is not a class of food?", options: ["Fats", "Proteins", "Energy", "Carbohydrates"], answer: 2, explanation: "Energy is not a class of food; it is a result of consuming food." },
+    { question: "How has science improved transportation?", options: ["By reducing the number of vehicles", "By maintaining vehicles and constructing better roads", "By promoting walking", "By discouraging travel"], answer: 1, explanation: "Science has enhanced transportation through vehicle maintenance, ship construction, and building better roads." },
+    { question: "Which of the following is an example of applied science?", options: ["Theoretical physics", "Clinical medicine", "Philosophy", "Literature"], answer: 1, explanation: "Clinical medicine applies scientific principles to diagnose and treat patients." },
+    { question: "How should the kitchen sink be maintained?", options: ["Cleaning it occasionally", "Cleaning it regularly", "Ignoring it", "Only rinsing with water"], answer: 1, explanation: "The kitchen sink should be cleaned regularly to maintain hygiene." },
+    { question: "Which mineral is essential for bone health?", options: ["Iron", "Calcium", "Sodium", "Potassium"], answer: 1, explanation: "Calcium is essential for maintaining strong bones and teeth." },
+    { question: "What does proper sanitation help to control?", options: ["Pests and disease vectors", "Waste accumulation", "Public health issues", "Environmental pollution"], answer: 0, explanation: "Proper sanitation helps control pests and disease vectors, improving overall health." },
+    { question: "What is the role of proteins in the body?", options: ["Providing energy", "Repairing and building tissues", "Regulating water", "Only for growth"], answer: 1, explanation: "Proteins are crucial for repairing and building tissues in the body." },
+    { question: "Which of the following is NOT a career in science?", options: ["Engineering", "Mathematics", "Painting", "Medicine"], answer: 2, explanation: "Painting is an art profession, while engineering, mathematics, and medicine are careers within the sciences." },
+    { question: "Why is refuse disposal important?", options: ["To create a mess", "To ensure proper waste management", "To ignore cleanliness", "To produce more waste"], answer: 1, explanation: "Proper refuse disposal is essential for effective waste management." },
+    { question: "What is a primary focus of agricultural science?", options: ["Studying animal behavior", "Maximizing crop yields", "The history of farming", "Urban development"], answer: 1, explanation: "Agricultural science focuses on maximizing crop yields and improving farming practices." },
+    { question: "Which field combines both scientific and mathematical principles?", options: ["Engineering", "Literature", "Psychology", "History"], answer: 0, explanation: "Engineering combines scientific and mathematical principles to design and build structures, systems, and processes." },
+    { question: "What is the purpose of keeping a clean environment?", options: ["To attract pests", "To promote public health", "To increase waste", "To ignore cleanliness"], answer: 1, explanation: "Keeping the environment clean promotes public health and prevents disease." },
+    { question: "What is refuse?", options: ["Liquid waste", "Solid waste requiring disposal", "Clean waste", "Food scraps only"], answer: 1, explanation: "Refuse refers to solid waste that requires collection and transportation for disposal." },
+    { question: "What should females do regarding hair maintenance?", options: ["Cut it short", "Wash it regularly", "Dye it frequently", "Ignore it"], answer: 1, explanation: "Females should wash their hair regularly or when they feel uncomfortable to maintain cleanliness." },
+    { question: "What is the primary source of energy for our daily activities?", options: ["Sleep", "Food", "Water", "Exercise"], answer: 1, explanation: "Energy for daily activities is primarily derived from the food we eat." },
+    { question: "How should fingernails and toenails be maintained?", options: ["Letting them grow long", "Cleaning them with a cloth", "Using a nail cutter to cut them", "Ignoring them"], answer: 2, explanation: "Fingernails and toenails should be cut regularly to prevent dirt accumulation." },
+    { question: "Which is a recommended practice for maintaining a healthy living room?", options: ["Dusting once a month", "Mopping with detergent and water", "Ignoring the floor", "Vacuuming only"], answer: 1, explanation: "Mopping the living room and bedroom floors with detergent and water helps keep these areas clean." },
+    { question: "Which of the following best describes an engineer's work?", options: ["Studying past events", "Developing technology and systems", "Conducting literary analysis", "Examining human interactions"], answer: 1, explanation: "Engineers apply scientific and mathematical principles to develop technology and systems." },
+    { question: "How often should you wash your body to maintain cleanliness?", options: ["Once a week", "Once a day", "Every morning and night", "Only when dirty"], answer: 2, explanation: "The body should be washed with soap and water in the morning and at night for proper hygiene." },
+    { question: "What is a proper method for toilet maintenance?", options: ["Flushing after every use", "Only cleaning once a week", "Ignoring it", "Using air freshener only"], answer: 0, explanation: "Toilets should be flushed after every use and cleaned regularly with disinfectant." },
+    { question: "What type of waste does sewage refer to?", options: ["Solid waste", "Organic waste", "Liquid waste", "Hazardous waste"], answer: 2, explanation: "Sewage refers to liquid waste matter from homes and factories." },
+    { question: "Which type of food is liquid?", options: ["Rice", "Garri", "Orange juice", "Yam"], answer: 2, explanation: "Orange juice is a liquid food, unlike rice or yam, which are solid." },
+    { question: "Which food item is a source of proteins?", options: ["Garri", "Rice", "Meat", "Corn"], answer: 2, explanation: "Meat is a rich source of proteins, which are essential for body building and repair." },
+    { question: "Which of the following foods is a source of dietary fiber?", options: ["Meat", "Fruits", "Milk", "Fish"], answer: 1, explanation: "Fruits are a good source of dietary fiber, aiding in digestion." },
+    { question: "Which of the following is a non-biodegradable material?", options: ["Vegetable scraps", "Paper", "Glass", "Food waste"], answer: 2, explanation: "Non-biodegradable materials, like glass, cannot be decomposed by microorganisms." },
+    { question: "What does industrial effluent contain?", options: ["Only food waste", "High levels of toxic metals", "Organic waste", "Garden refuse"], answer: 1, explanation: "Industrial effluent refers to discharges from industries that often contain high levels of toxic metals." },
+  ];
 
-        const symbol = document.getElementById('symbol').value;
-        const resultDiv = document.getElementById('result');
-        const loadingDiv = document.getElementById('loading');
+const theory_questions = [
+    { question: "What is the origin of the word 'science'?", answer: "The word 'science' originates from the Latin word 'scientia,' which means 'knowledge.'" },
 
-        // Show loading spinner
-        loadingDiv.style.display = 'block';
-        resultDiv.style.display = 'none';
+    { question: "How can science be defined?", answer: "Science can be defined as the knowledge obtained by observing and testing facts." },
 
-        try {
-            const response = await fetch('http://127.0.0.1:8000/analyze_market', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ symbol: symbol }),
-            });
+    { question: "What is the systematic study in science about?", answer: "The systematic study in science involves the exploration of living and non-living things in our environment." },
 
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+    { question: "Who is considered a scientist?", answer: "A scientist is a person who studies one or more branches of natural science, such as physics, chemistry, or biology, and conducts research to advance knowledge in these areas." },
 
-            const data = await response.json();
-            let output = '<h2>Market Analysis Results</h2>';
-            for (const [interval, direction] of Object.entries(data)) {
-                output += `<p>Market Direction for ${interval}: <strong>${direction}</strong></p>`;
-            }
-            resultDiv.innerHTML = output;
-            resultDiv.style.display = 'block';
+    { question: "What does the term 'basic science' refer to?", answer: "Basic science is a general term that encompasses the learning of science at the primary and junior secondary education levels." },
 
-        } catch (error) {
-            resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
-            resultDiv.style.display = 'block';
-        } finally {
-            // Hide loading spinner
-            loadingDiv.style.display = 'none';
-        }
-    });
+    { question: "What is meant by 'careers in science'?", answer: "Careers in science refer to professions that individuals engage in for personal development and income generation, often involving scientific knowledge and practices." },
+
+    { question: "Name three careers that fall under the category of science.", answer: "Careers in science include engineering, medicine, and pharmacy." },
+
+    { question: "How has science contributed to healthcare?", answer: "Science has enabled the production of drugs for diseases such as malaria, improving healthcare outcomes." },
+
+    { question: "In what way has science advanced our understanding of the universe?", answer: "Science has facilitated the discovery of new galaxies and planets, as well as the potential existence of life on them." },
+
+    { question: "How does science benefit agriculture?", answer: "The knowledge of science has led to the development of high-yielding seeds and disease-resistant crops, enhancing agricultural productivity." },
+
+    { question: "What are some inventions that science has contributed to?", answer: "Science has led to the invention of numerous technologies, including cell phones, cars, and airplanes." },
+
+    { question: "How has science improved transportation?", answer: "Science has enhanced transportation through better vehicle maintenance, ship construction, and the building of quality roads." },
+
+    { question: "What role does science play in communication?", answer: "Science has improved communication through the development of telephones, information and communication technology (ICT), and other internet devices." },
+
+    { question: "What is the first step in the scientific method?", answer: "The first step in the scientific method is asking questions to gather accurate information about a topic." },
+
+    { question: "Why is observation important in science?", answer: "Observation is crucial as it allows scientists to closely examine and gather data about phenomena." },
+
+    { question: "What is the significance of recording in scientific studies?", answer: "Recording observations is essential for tracking data, analyzing results, and ensuring accurate documentation of findings." },
+
+    { question: "How do scientists classify their observations?", answer: "Scientists classify their observations based on characteristics such as color, size, weight, roughness, sound, and odor." },
+
+    { question: "What does forming a hypothesis involve?", answer: "Forming a hypothesis involves making educated guesses or judgments about a phenomenon without being certain of the facts." },
+
+    { question: "What is the purpose of experimentation in the scientific method?", answer: "The purpose of experimentation is to test hypotheses to determine which guesses are true or false." },
+
+    { question: "What occurs during the conclusion stage of the scientific method?", answer: "During the conclusion stage, scientists analyze the results of their experiments to confirm whether their hypotheses are accurate." },
+
+    { question: "What is personal cleanliness?", answer: "Personal cleanliness or personal hygiene refers to practices aimed at improving an individual's hygiene, which includes keeping the body, clothes, and shoes clean and neat." },
+
+    { question: "How is environmental sanitation defined?", answer: "Environmental sanitation is defined as the practice of maintaining a clean and healthy environment by keeping places free from dirt, infection, and disease, and properly managing waste materials." },
+
+    { question: "What are some methods for keeping the body clean?", answer: "Methods for keeping the body clean include washing with soap and water twice daily, regularly cutting and washing hair, trimming fingernails and toenails, and brushing teeth twice a day." },
+
+    { question: "What should be done to maintain a clean kitchen?", answer: "The kitchen sink should be cleaned regularly to prevent the buildup of dirt and bacteria." },
+
+    { question: "How can we ensure that our toilet is kept clean?", answer: "Toilets should be flushed after every use, and the bowls should be cleaned with a toilet brush, detergent, and disinfectant." },
+
+    { question: "What is refuse and why is it important to manage it?", answer: "Refuse consists of solid waste materials that require proper collection and transportation to disposal sites to prevent environmental pollution." },
+
+    { question: "What is sewage?", answer: "Sewage refers to liquid waste matter, such as feces or dirty water from homes and factories, which flows through sewage pipes." },
+
+    { question: "What is industrial effluent?", answer: "Industrial effluent consists of discharges or waste from various industries, which often contain high levels of toxic metals." },
+
+    { question: "Why is the proper disposal of waste important?", answer: "Proper disposal of refuse, sewage, and industrial effluent is crucial to prevent pollution and protect public health." },
+
+    { question: "What are biodegradable materials?", answer: "Biodegradable materials are substances that can decompose and be broken down by microorganisms, such as vegetable scraps and meat." },
+
+    { question: "What are non-biodegradable materials?", answer: "Non-biodegradable materials are substances that cannot be decomposed or broken down by microorganisms, such as glass and steel." },
+
+    { question: "What is one method of sanitation for keeping the environment clean?", answer: "One method of sanitation is ensuring that refuse is collected and disposed of properly to maintain a clean environment." },
+
+    { question: "How does sanitation benefit public health?", answer: "Sanitation prevents the spread of diseases, keeps the environment tidy and clean, and creates a habitable space for living." },
+
+    { question: "What is nutrition?", answer: "Nutrition is the process of consuming the right kinds of food and using them for growth, maintenance, and good health." },
+
+    { question: "Define food in the context of nutrition.", answer: "Food is any substance that, when eaten and digested, provides nutrients necessary for the body's functioning." },
+
+    { question: "What are the two main types of food?", answer: "Food can be classified into liquid and solid forms, with examples including orange juice as a liquid and rice as a solid." },
+
+    { question: "What distinguishes food eaten raw from food eaten when cooked?", answer: "Food eaten raw refers to items that can be consumed without cooking, such as pawpaw and carrot, while cooked food requires preparation, like yam and meat." },
+
+    { question: "List three classes of food.", answer: "The six classes of food are carbohydrates, proteins, fats and oils, vitamins, mineral salts, and water." },
+
+    { question: "What role do carbohydrates play in our diet?", answer: "Carbohydrates provide energy for the body, enabling individuals to perform daily activities." },
+
+    { question: "Why are proteins important?", answer: "Proteins are essential for body building, growth, and the repair or replacement of worn-out cells." },
+
+    { question: "What is the function of fats in our diet?", answer: "Fats serve as a great source of energy and help in the absorption of certain vitamins." },
+
+    { question: "What are vitamins and why are they necessary?", answer: "Vitamins are substances required in our diet for good health, and they play various roles in metabolic processes." },
+
+    { question: "Differentiate between water-soluble and fat-soluble vitamins.", answer: "Water-soluble vitamins dissolve in water and are readily absorbed by the body, while fat-soluble vitamins dissolve in fats and are absorbed along with them." },
+
+    { question: "What are mineral salts and their importance?", answer: "Mineral salts are essential nutrient elements that help the body perform metabolic functions, such as sodium, magnesium, and iodine." },
+
+    { question: "How does water function as part of our diet?", answer: "Water is vital for digestion, absorption of food, and serves as a component in bodily secretions like saliva and sweat." },
+
+    { question: "What constitutes a balanced diet?", answer: "A balanced diet contains all six classes of food in appropriate proportions, providing the body with everything it needs for health." },
+
+    { question: "What is reproductive health?", answer: "Reproductive health refers to the state of well-being in all matters relating to the reproductive system, including the ability to reproduce and the process of giving birth to young ones." },
+
+    { question: "What is fertilization in the context of reproduction?", answer: "Fertilization occurs when a sperm cell fuses with an egg cell to form a zygote, which then develops into an embryo and eventually a fetus." },
+
+    { question: "Define pregnancy.", answer: "Pregnancy is the period during which one or more offspring develop inside a human or animal, specifically from the implantation of the embryo to the birth of the fetus." },
+
+    { question: "How long does a typical human pregnancy last?", answer: "A typical human pregnancy lasts about 40 weeks, divided into three trimesters." },
+
+    { question: "What are some common symptoms of pregnancy?", answer: "Common symptoms of pregnancy include shortness of breath, fatigue, nausea, frequent urination, headaches, backaches, and a positive pregnancy test." },
+
+    { question: "Who should a pregnant woman consult for medical help?", answer: "A pregnant woman should consult a doctor or a midwife for medical advice and support once pregnancy is suspected." },
+
+    { question: "What changes occur during the first trimester of pregnancy?", answer: "During the first trimester, the uterus changes size, and many women experience symptoms such as nausea and discomfort." },
+
+    { question: "What happens during the second trimester of pregnancy?", answer: "In the second trimester, from week 13 to 28, many women often feel an increase in energy and the symptoms of early pregnancy may begin to lessen." },
+
+    { question: "Describe the third trimester of pregnancy.", answer: "The third trimester is the final stage of pregnancy, during which the uterus expands significantly, occupying a large portion of the abdomen." },
+
+    { question: "What is teenage pregnancy?", answer: "Teenage pregnancy occurs when a female adolescent, typically between the ages of 13 and 19, becomes pregnant." },
+
+    { question: "What are the emotional consequences of teenage pregnancy?", answer: "Emotional consequences can include fear, confusion, potential suicidal thoughts due to lack of support, and the possibility of dropping out of school." },
+
+    { question: "What are the physical risks associated with teenage pregnancy?", answer: "Teenagers are at higher risk of premature birth and may lack the knowledge necessary to properly care for themselves and their unborn baby." },
+
+    { question: "What social consequences might pregnant teenagers face?", answer: "Social consequences include drug abuse as a coping mechanism for rejection, ridicule and discrimination from peers, and the likelihood of dropping out of school." },
+
+    { question: "What are some effects of self-medication during pregnancy?", answer: "Self-medication can lead to developmental defects in reproductive organs, respiratory diseases in the baby, retarded growth and malformation of the fetus, and miscarriage." },
+
+    { question: "What is one common myth about teenage pregnancy?", answer: "One myth is that a teenager cannot become pregnant the first time she has sex; however, pregnancy can occur if this first encounter happens during her ovulation period." },
+
+    { question: "What should a pregnant teenager do upon discovering her pregnancy?", answer: "A pregnant teenager should avoid making hasty decisions, seek counseling when needed, refrain from smoking, drinking alcohol, or using illicit drugs, and eat a nutritious and balanced diet." },
+
+    { question: "What is the significance of prenatal care for pregnant teenagers?", answer: "Early prenatal care is crucial for monitoring the health of both the mother and the unborn child, helping to ensure proper development and address any health concerns." },
+
+    { question: "How does a pregnant woman's diet affect her unborn baby?", answer: "A nutritious and balanced diet is vital as it ensures that the mother receives essential nutrients, which are then passed on to the developing baby for healthy growth." },
+
+    { question: "What role do community health centers play for pregnant women?", answer: "Community health centers provide counseling and support on how to take care of pregnant women and their bodies during pregnancy." },
+
+    { question: "What changes occur in the body during pregnancy?", answer: "Pregnancy leads to various physiological changes, including hormonal fluctuations, increased blood volume, and physical changes in the uterus and breasts to prepare for childbirth." },
+
+    { question: "How can support systems affect teenage mothers?", answer: "Support systems, including family, friends, and counseling services, can significantly impact the emotional well-being and coping strategies of teenage mothers, reducing feelings of isolation." },
+
+    { question: "What are some key responsibilities for pregnant teenagers?", answer: "Pregnant teenagers should prioritize their health, seek regular medical advice, maintain a healthy lifestyle, and focus on their emotional well-being during pregnancy." },
+
+
+];
+
+
+  let score = 0;
+  let currentQuestionIndex;
+  let isTheoryMode = false;
+  let sessionQuestions = [];
+  let answeredQuestions = new Set();
+
+  // Select objective questions
+  function selectObjective() {
+    isTheoryMode = false;
+    startNewSession(objective_questions, 15);
+  }
+
+  // Select theory questions
+  function selectTheory() {
+    isTheoryMode = true;
+    startNewSession(theory_questions, 5);
+  }
+
+  // Start a new session
+  function startNewSession(questionsArray, limit) {
+    score = 0;
+    answeredQuestions.clear();
+    sessionQuestions = shuffleArray(questionsArray).slice(0, limit);
+    currentQuestionIndex = 0;
+    document.getElementById("restart-button").style.display = "none";
+    displayQuestion();
+  }
+
+  // Shuffle questions array
+  function shuffleArray(array) {
+    return array.sort(() => Math.random() - 0.5);
+  }
+
+  // Display the current question
+  function displayQuestion() {
+    if (currentQuestionIndex >= sessionQuestions.length) {
+      completeSession();
+      return;
+    }
+
+    const question = sessionQuestions[currentQuestionIndex];
+    const questionElement = document.getElementById('question');
+    const optionsElement = document.getElementById('options');
+    const feedbackElement = document.getElementById('feedback');
+    const questionCountElement = document.getElementById('question-count');
+    const scoreElement = document.getElementById('score');
+
+    // Update question count and score
+    questionCountElement.textContent = `Question ${currentQuestionIndex + 1} of ${sessionQuestions.length}`;
+    scoreElement.textContent = `Score: ${score}`;
+
+    // Clear previous feedback
+    feedbackElement.textContent = "";
+    document.getElementById('theory-answer').textContent = ""; // Clear previous theory answer
+
+    if (isTheoryMode) {
+      questionElement.textContent = question.question;
+      optionsElement.innerHTML = "";
+      const showAnswerButton = document.createElement('button');
+      showAnswerButton.textContent = "Show Answer";
+      showAnswerButton.onclick = () => document.getElementById('theory-answer').textContent = question.answer;
+      optionsElement.appendChild(showAnswerButton);
+    } else {
+      questionElement.textContent = question.question;
+      optionsElement.innerHTML = "";
+      question.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.onclick = () => checkAnswer(index, question);
+        optionsElement.appendChild(button);
+      });
+    }
+  }
+
+   // Check the user's answer for objective questions
+  function checkAnswer(selectedOption, question) {
+    const feedbackElement = document.getElementById('feedback');
+    const correctAnswer = question.answer;
+
+    if (answeredQuestions.has(currentQuestionIndex)) return; // Ignore if already answered
+
+    answeredQuestions.add(currentQuestionIndex); // Mark as answered
+    if (selectedOption === correctAnswer) {
+      feedbackElement.innerHTML = "<strong>Correct Answer!</strong>";
+      feedbackElement.classList.remove("incorrect");
+      score++;
+    } else {
+      // Display structured feedback for incorrect answer
+      feedbackElement.innerHTML = `
+        <strong>Incorrect</strong><br><br>
+        <strong>Correct Answer:</strong> [ ${question.options[correctAnswer]} ]<br>
+        ${question.explanation}
+      `;
+      feedbackElement.classList.add("incorrect");
+    }
+    updateScore();
+  }
+  <!--// Update the score display-->
+  <!--function updateScore() {-->
+    <!--const scoreElement = document.getElementById('score');-->
+    <!--scoreElement.textContent = `Score: ${score}`;-->
+  <!--}-->
+
+  let currentScore = 0;
+let currentQuestion = 1;
+const totalQuestions = 15;
+
+// Update the score and question tracker
+document.getElementById("score").textContent = currentScore;
+document.getElementById("current-question").textContent = currentQuestion;
+document.getElementById("total-questions").textContent = totalQuestions;
+
+// Function to update score and question tracker during the quiz
+function updateTracker(score, questionNumber) {
+    document.getElementById("score").textContent = score;
+    document.getElementById("current-question").textContent = questionNumber;
+}
+
+
+  // Navigate to the next question
+  function nextQuestion() {
+    currentQuestionIndex++;
+    displayQuestion();
+  }
+
+  // Navigate to the previous question
+  function previousQuestion() {
+    if (currentQuestionIndex > 0) {
+      currentQuestionIndex--;
+      displayQuestion();
+    }
+  }
+
+  // Complete the session
+  function completeSession() {
+    alert(`Session completed! Your score: ${score} / ${sessionQuestions.length}`);
+    document.getElementById("restart-button").style.display = "block"; // Show restart button
+  }
+
+  // Restart the quiz
+  function restartQuiz() {
+    score = 0;
+    answeredQuestions.clear();
+    currentQuestionIndex = 0;
+    document.getElementById("restart-button").style.display = "none";
+    displayQuestion();
+  }
+
+  // Initialize the quiz
+  displayQuestion();
 </script>
-
 </body>
 </html>
